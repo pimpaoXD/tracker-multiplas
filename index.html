@@ -3,11 +3,17 @@
 <style>
 :root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#eaf0f7;background:#0b1118}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#0b1118,#111c28);min-height:100vh}.wrap{max-width:1100px;margin:auto;padding:24px}.top,.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.brand h1{margin:0 0 5px}.brand p,.muted,.status{color:#9eabb9}.card{background:#121c27;border:1px solid #263646;border-radius:16px;padding:18px;margin-bottom:16px}.login{display:grid;grid-template-columns:1fr 1fr auto;gap:10px}.input,.select,.btn{width:100%;border:1px solid #304355;background:#0e1720;color:#eaf0f7;border-radius:10px;padding:11px 12px;font:inherit}.btn{cursor:pointer;background:#1d6eea;border-color:#1d6eea;font-weight:700}.btn.secondary{background:#182432}.btn.danger{background:#8e2730;border-color:#8e2730}.btn.small{width:auto;padding:8px 10px}.hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.stat{background:#0e1720;border:1px solid #263646;border-radius:12px;padding:14px}.stat b{display:block;font-size:22px;margin-top:3px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.selection{display:grid;grid-template-columns:1fr 1fr 150px auto;gap:8px;margin:8px 0}.history-item{border-top:1px solid #263646;padding:16px 0}.history-item:first-child{border-top:0}.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}.pending{background:#5d4b12;color:#ffe7a1}.win{background:#123f2a;color:#8ef0ba}.loss{background:#4b1c23;color:#ff9eaa}.sel-history{display:grid;grid-template-columns:1fr 1fr 150px;gap:8px;align-items:center;padding:6px 0}.empty{padding:25px;text-align:center;color:#8997a7}.notice{padding:10px 12px;border:1px solid #304355;border-radius:10px;margin-top:10px}.footer{text-align:center;color:#728091;font-size:12px;padding:10px}@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.login,.formgrid{grid-template-columns:1fr}.selection{grid-template-columns:1fr 1fr}.selection .remove{grid-column:2}.sel-history{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
 </style></head><body><div class="wrap">
-<div class="top"><div class="brand"><h1>Supabase Login</h1><p>Login e diagnóstico de sessão.</p></div><button id="logout" class="btn secondary small hidden">Sair</button></div>
+<div class="top"><div class="brand"><h1>Supabase Login</h1><p>Login e diagnóstico de sessão.</p></div>
+<div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12)">
+  <h3>Alterar email</h3>
+  <p>Introduz o novo endereço. A confirmação será enviada pelo Supabase conforme a configuração do projeto.</p>
+  <input id="newEmail" type="email" autocomplete="email" placeholder="Novo email" />
+  <button id="changeEmailBtn" type="button">Alterar email</button>
+  <div id="emailChangeMsg" style="margin-top:10px"></div>
+</div>
+<button id="logout" class="btn secondary small hidden">Sair</button></div>
 <section id="setup" class="card"><h2>Ligação ao Supabase</h2><div class="formgrid"><input id="configUrl" class="input" type="url" placeholder="https://....supabase.co"><input id="configKey" class="input" type="password" placeholder="Publishable / anon public key"></div><button id="connect" class="btn" style="margin-top:10px">Guardar e ligar</button><div id="configStatus" class="status notice">Introduz os dados públicos do teu projeto.</div></section>
-<section id="auth" class="card hidden"><h2>Conta</h2><div class="login"><input id="email" class="input" type="email" placeholder="Email"><input id="password" class="input" type="password" placeholder="Palavra-passe"><button id="login" class="btn secondary">Entrar</button></div><div style="margin-top:12px"><button id="passwordDiag" class="btn secondary" type="button">Gerar diagnóstico de email e palavra-passe</button></div>
-<div id="passwordDiagResult" class="status notice" style="margin-top:10px">O diagnóstico é calculado apenas neste dispositivo e não mostra a palavra-passe.</div>
-<div id="authStatus" class="status notice">Entra para sincronizar os teus dados.</div></section>
+<section id="auth" class="card hidden"><h2>Conta</h2><div class="login"><input id="email" class="input" type="email" placeholder="Email"><input id="password" class="input" type="password" placeholder="Palavra-passe"><button id="login" class="btn secondary">Entrar</button></div><div id="authStatus" class="status notice">Entra para sincronizar os teus dados.</div></section>
 <main id="app" class="hidden">
 <section class="card">
   <h2>Conta Supabase</h2>
@@ -137,38 +143,45 @@ $('refreshSession').addEventListener('click',async()=>{
   }catch(e){msg('diagStatus','Falhou: '+e.message,true)}
 });
 
-
-$('passwordDiag').addEventListener('click',async()=>{
-  const email=$('email').value.trim();
-  const p=$('password').value;
-  if(!email||!p)return msg('passwordDiagResult','Preenche primeiro o email e a palavra-passe.',true);
-  try{
-    const hash=async value=>{
-      const bytes=new TextEncoder().encode(value);
-      const digest=await crypto.subtle.digest('SHA-256',bytes);
-      return {
-        chars:[...value].length,
-        bytes:bytes.length,
-        spaces:/\s/.test(value),
-        nonAscii:[...value].some(ch=>ch.codePointAt(0)>127),
-        sha:[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')
-      };
-    };
-    const e=await hash(email);
-    const pw=await hash(p);
-    const emailChars=[...email].map((ch,i)=>`${i+1}:${ch===' '?'[ESPAÇO]':ch}`).join('  ');
-    $('passwordDiagResult').textContent=
-      `EMAIL — Caracteres: ${e.chars} | Bytes: ${e.bytes} | Espaços: ${e.spaces?'SIM':'NÃO'} | Fora de ASCII: ${e.nonAscii?'SIM':'NÃO'} | SHA-256: ${e.sha}\n`+
-      `CARACTERES DO EMAIL — ${emailChars}\n\n`+
-      `PASSWORD — Caracteres: ${pw.chars} | Bytes: ${pw.bytes} | Espaços: ${pw.spaces?'SIM':'NÃO'} | Fora de ASCII: ${pw.nonAscii?'SIM':'NÃO'} | SHA-256: ${pw.sha}`;
-    $('passwordDiagResult').style.whiteSpace='pre-wrap';
-    $('passwordDiagResult').style.color='#9eabb9';
-  }catch(e){msg('passwordDiagResult','Erro no diagnóstico: '+e.message,true)}
-});
-
 (async()=>{
   try{await restore()}catch{clearSession()}
   ui();
 })();
 })();
-</script></body></html>
+</script>
+<script>
+(function () {
+  const btn = document.getElementById('changeEmailBtn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async function () {
+    const input = document.getElementById('newEmail');
+    const msg = document.getElementById('emailChangeMsg');
+    const newEmail = (input.value || '').trim();
+
+    if (!newEmail || !newEmail.includes('@')) {
+      msg.textContent = 'Introduz um email válido.';
+      return;
+    }
+
+    btn.disabled = true;
+    msg.textContent = 'A pedir alteração...';
+
+    try {
+      // Uses the existing authenticated request helper and access token from this auth page.
+      const result = await api('/auth/v1/user', {
+        method: 'PUT',
+        body: JSON.stringify({ email: newEmail })
+      });
+
+      msg.textContent = 'Pedido enviado. Verifica a caixa de entrada do novo email e confirma a alteração.';
+    } catch (err) {
+      msg.textContent = 'Erro: ' + (err && err.message ? err.message : String(err));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+
+</body></html>
