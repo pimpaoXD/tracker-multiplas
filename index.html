@@ -5,7 +5,9 @@
 </style></head><body><div class="wrap">
 <div class="top"><div class="brand"><h1>Supabase Login</h1><p>Login e diagnóstico de sessão.</p></div><button id="logout" class="btn secondary small hidden">Sair</button></div>
 <section id="setup" class="card"><h2>Ligação ao Supabase</h2><div class="formgrid"><input id="configUrl" class="input" type="url" placeholder="https://....supabase.co"><input id="configKey" class="input" type="password" placeholder="Publishable / anon public key"></div><button id="connect" class="btn" style="margin-top:10px">Guardar e ligar</button><div id="configStatus" class="status notice">Introduz os dados públicos do teu projeto.</div></section>
-<section id="auth" class="card hidden"><h2>Conta</h2><div class="login"><input id="email" class="input" type="email" placeholder="Email"><input id="password" class="input" type="password" placeholder="Palavra-passe"><button id="login" class="btn secondary">Entrar</button></div><div id="authStatus" class="status notice">Entra para sincronizar os teus dados.</div></section>
+<section id="auth" class="card hidden"><h2>Conta</h2><div class="login"><input id="email" class="input" type="email" placeholder="Email"><input id="password" class="input" type="password" placeholder="Palavra-passe"><button id="login" class="btn secondary">Entrar</button></div><div style="margin-top:12px"><button id="passwordDiag" class="btn secondary" type="button">Gerar diagnóstico da palavra-passe</button></div>
+<div id="passwordDiagResult" class="status notice" style="margin-top:10px">O diagnóstico é calculado apenas neste dispositivo.</div>
+<div id="authStatus" class="status notice">Entra para sincronizar os teus dados.</div></section>
 <main id="app" class="hidden">
 <section class="card">
   <h2>Conta Supabase</h2>
@@ -15,11 +17,6 @@
     <button id="refreshSession" class="btn secondary" type="button">Renovar sessão</button>
   </div>
   <div id="diagStatus" class="status" style="margin-top:10px"></div>
-  <hr style="border:0;border-top:1px solid #263646;margin:18px 0">
-  <h3>Diagnóstico da palavra-passe</h3>
-  <p class="muted">Escreve a palavra-passe no campo de login. O diagnóstico é calculado apenas neste dispositivo e não mostra a palavra-passe.</p>
-  <button id="passwordDiag" class="btn secondary" type="button">Gerar diagnóstico</button>
-  <div id="passwordDiagResult" class="status notice" style="margin-top:10px">Ainda não executado.</div>
 </section>
 </main><div class="footer">Autenticação Supabase</div><div class="footer">Os € são ajustados manualmente.</div></div>
 <script>
