@@ -15,6 +15,11 @@
     <button id="refreshSession" class="btn secondary" type="button">Renovar sessão</button>
   </div>
   <div id="diagStatus" class="status" style="margin-top:10px"></div>
+  <hr style="border:0;border-top:1px solid #263646;margin:18px 0">
+  <h3>Diagnóstico da palavra-passe</h3>
+  <p class="muted">Escreve a palavra-passe no campo de login. O diagnóstico é calculado apenas neste dispositivo e não mostra a palavra-passe.</p>
+  <button id="passwordDiag" class="btn secondary" type="button">Gerar diagnóstico</button>
+  <div id="passwordDiagResult" class="status notice" style="margin-top:10px">Ainda não executado.</div>
 </section>
 </main><div class="footer">Autenticação Supabase</div><div class="footer">Os € são ajustados manualmente.</div></div>
 <script>
@@ -133,6 +138,22 @@ $('refreshSession').addEventListener('click',async()=>{
     msg('diagStatus','Sessão renovada com sucesso.');
     ui();
   }catch(e){msg('diagStatus','Falhou: '+e.message,true)}
+});
+
+
+$('passwordDiag').addEventListener('click',async()=>{
+  const p=$('password').value;
+  if(!p)return msg('passwordDiagResult','Escreve primeiro a palavra-passe no campo de login.',true);
+  try{
+    const bytes=new TextEncoder().encode(p);
+    const digest=await crypto.subtle.digest('SHA-256',bytes);
+    const hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+    const hasSpaces=/\s/.test(p);
+    const nonAscii=[...p].some(ch=>ch.codePointAt(0)>127);
+    $('passwordDiagResult').textContent=
+      `Caracteres: ${[...p].length} | Bytes UTF-8: ${bytes.length} | Espaços: ${hasSpaces?'SIM':'NÃO'} | Fora de ASCII: ${nonAscii?'SIM':'NÃO'} | SHA-256: ${hash}`;
+    $('passwordDiagResult').style.color='#9eabb9';
+  }catch(e){msg('passwordDiagResult','Erro no diagnóstico: '+e.message,true)}
 });
 
 (async()=>{
