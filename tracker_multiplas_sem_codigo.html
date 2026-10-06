@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tracker de Múltiplas — Sync</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#eaf0f7;background:#0b1118}*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#0b1118,#111c28);min-height:100vh}.wrap{max-width:1050px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:20px}.brand h1{margin:0 0 5px;font-size:28px}.brand p{margin:0;color:#9eabb9}.card{background:#121c27;border:1px solid #263646;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 8px 25px #0003}.login{display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px}.input,.select,.btn{width:100%;border:1px solid #304355;background:#0e1720;color:#eaf0f7;border-radius:10px;padding:11px 12px;font:inherit}.btn{cursor:pointer;background:#1d6eea;border-color:#1d6eea;font-weight:700}.btn.secondary{background:#182432;border-color:#304355}.btn.danger{background:#8e2730;border-color:#8e2730}.btn.small{width:auto;padding:8px 10px}.status{margin-top:10px;color:#9eabb9}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#0e1720;border:1px solid #263646;border-radius:12px;padding:14px}.stat b{display:block;font-size:24px;margin-top:3px}.formgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.selection{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px}.muted{color:#9eabb9}.history-item{border-top:1px solid #263646;padding:15px 0}.history-item:first-child{border-top:0}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.badge{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800}.pending{background:#5d4b12;color:#ffe7a1}.win{background:#123f2a;color:#8ef0ba}.loss{background:#4b1c23;color:#ff9eaa}.hidden{display:none}.setup{font-size:14px;line-height:1.55}.code{background:#0a1016;border:1px solid #263646;border-radius:8px;padding:10px;overflow:auto;white-space:pre-wrap}.footer{color:#728091;font-size:12px;text-align:center;padding:10px}.selection-list{margin-top:12px}.selection-list div{padding:5px 0}.empty{padding:30px;text-align:center;color:#8997a7}
+@media(max-width:720px){.login,.formgrid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.selection{grid-template-columns:1fr 1fr auto}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand"><h1>Tracker de Múltiplas</h1><p>Previsões desportivas sincronizadas entre dispositivos.</p></div><button id="logout" class="btn secondary small hidden">Sair</button></div>
+
+  <section id="auth" class="card">
+    <h2>Conta</h2>
+    <div class="login">
+      <input id="email" class="input" type="email" placeholder="Email">
+      <input id="password" class="input" type="password" placeholder="Palavra-passe">
+      <button id="signup" class="btn">Criar conta</button>
+      <button id="login" class="btn secondary">Entrar</button>
+    </div>
+    <div id="authStatus" class="status">Cria uma conta para guardar e sincronizar as tuas previsões.</div>
+  </section>
+
+  <main id="app" class="hidden">
+    <section class="card">
+      <h2>Resumo</h2>
+      <div class="stats">
+        <div class="stat">Total<b id="total">0</b></div>
+        <div class="stat">Acertadas<b id="wins">0</b></div>
+        <div class="stat">Falhadas<b id="losses">0</b></div>
+        <div class="stat">Taxa de acerto<b id="rate">0%</b></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Nova múltipla</h2>
+      <div class="formgrid">
+        <input id="date" class="input" type="date">
+        <input id="name" class="input" placeholder="Nome / referência (opcional)">
+        <select id="result" class="select"><option value="pending">Por decidir</option><option value="win">Acertada</option><option value="loss">Falhada</option></select>
+      </div>
+      <div id="selections" class="selection-list"></div>
+      <button id="addSelection" class="btn secondary small">+ Adicionar previsão</button>
+      <div style="margin-top:10px"><input id="notes" class="input" placeholder="Notas (opcional)"></div>
+      <button id="save" class="btn" style="margin-top:10px">Guardar múltipla</button>
+      <div id="saveStatus" class="status"></div>
+    </section>
+
+    <section class="card">
+      <div class="row"><h2 style="margin:0">Histórico</h2><button id="refresh" class="btn secondary small">Atualizar</button></div>
+      <div id="history"></div>
+    </section>
+  </main>
+
+  <section class="card setup" id="setupHelp">
+    <h2>Ligação ao Supabase</h2>
+    <p>Cola aqui os dois dados públicos do teu projeto. Não precisas de abrir nem editar o código.</p>
+    <div class="formgrid">
+      <input id="configUrl" class="input" type="url" placeholder="API URL — https://....supabase.co">
+      <input id="configKey" class="input" type="password" placeholder="Publishable / anon public key">
+      <button id="connect" class="btn">Ligar ao Supabase</button>
+    </div>
+    <div id="configStatus" class="status"></div>
+    <button id="clearConfig" class="btn secondary small" style="margin-top:10px">Limpar configuração deste dispositivo</button>
+  </section>
+
+  <section class="card setup" id="setupHelpOld">
+    <h2>Configuração da sincronização</h2>
+    <p>Esta versão usa uma base de dados online para que a mesma conta veja os mesmos dados no PC e no telemóvel. Antes de publicar, é preciso ligar o site ao teu projeto Supabase.</p>
+    <p><b>1.</b> Cria um projeto no Supabase. <b>2.</b> Cria uma tabela chamada <code>multiples</code> com as colunas indicadas abaixo. <b>3.</b> Ativa RLS e usa as políticas indicadas. <b>4.</b> Substitui no código <code>COLOCA_AQUI_O_PROJECT_URL</code> e <code>COLOCA_AQUI_A_ANON_KEY</code>.</p>
+    <div class="code">create table public.multiples (
+  id bigint generated by default as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz default now(),
+  date date,
+  name text,
+  result text not null,
+  notes text,
+  selections jsonb not null default '[]'::jsonb
+);
+
+alter table public.multiples enable row level security;
+
+create policy "Users can read own multiples"
+on public.multiples for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert own multiples"
+on public.multiples for insert
+with check (auth.uid() = user_id);
+
+create policy "Users can delete own multiples"
+on public.multiples for delete
+using (auth.uid() = user_id);</div>
+    <p class="muted">Importante: no coloques uma chave secreta/service-role no site. O site deve usar apenas a chave pública/anon do projeto, protegida pelas políticas RLS.</p>
+  </section>
+  <div class="footer">Os dados pertencem à conta autenticada e não são guardados apenas no navegador.</div>
+</div>
+<script>
+const CONFIG_URL_KEY='tracker_supabase_url';
+const CONFIG_ANON_KEY='tracker_supabase_anon';
+let SUPABASE_URL=localStorage.getItem(CONFIG_URL_KEY)||'';
+let SUPABASE_ANON_KEY=localStorage.getItem(CONFIG_ANON_KEY)||'';
+let configured=!!(SUPABASE_URL && SUPABASE_ANON_KEY);
+let sb=null,currentUser=null,selections=[];
+function makeClient(){
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY)return null;
+  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+if(configured) sb=makeClient();
+if(configured) sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
+if($('configUrl')) $('configUrl').value=SUPABASE_URL;
+if($('configKey')) $('configKey').value=SUPABASE_ANON_KEY;
+function configStatus(msg,err=false){if(!$('configStatus'))return;$('configStatus').textContent=msg;$('configStatus').style.color=err?'#ff9eaa':'#9eabb9'}
+$('connect').onclick=async()=>{
+  const url=$('configUrl').value.trim().replace(/\/$/,'');
+  const key=$('configKey').value.trim();
+  if(!/^https:\/\/[^\s]+\.supabase\.co$/.test(url)){configStatus('A API URL parece inválida. Deve ser algo como https://xxxx.supabase.co',true);return}
+  if(!key){configStatus('Cola a Publishable/anon public key.',true);return}
+  SUPABASE_URL=url; SUPABASE_ANON_KEY=key;
+  localStorage.setItem(CONFIG_URL_KEY,url); localStorage.setItem(CONFIG_ANON_KEY,key);
+  sb=makeClient(); configured=true;
+  configStatus('Ligação guardada neste dispositivo. A testar…');
+  try{
+    const {error}=await sb.auth.getSession();
+    if(error) throw error;
+    configStatus('Supabase ligado com sucesso. Já podes criar conta ou entrar.');
+    updateUI();
+    initAuth();
+  }catch(e){
+    localStorage.removeItem(CONFIG_URL_KEY); localStorage.removeItem(CONFIG_ANON_KEY); SUPABASE_URL='';SUPABASE_ANON_KEY='';configured=false;sb=null;
+    configStatus('Não foi possível ligar: '+(e.message||e),true); updateUI();
+  }
+};
+$('clearConfig').onclick=async()=>{if(sb)try{await sb.auth.signOut()}catch(e){} localStorage.removeItem(CONFIG_URL_KEY);localStorage.removeItem(CONFIG_ANON_KEY);location.reload()};
+$('date').value=new Date().toISOString().slice(0,10);
+function status(msg,err=false){$('authStatus').textContent=msg;$('authStatus').style.color=err?'#ff9eaa':'#9eabb9'}
+function badge(r){return `<span class="badge ${r}">${r==='win'?'Acertada':r==='loss'?'Falhada':'Por decidir'}</span>`}
+function addSelectionRow(event='',prediction=''){
+ const row=document.createElement('div');row.className='selection';
+ row.innerHTML=`<input class="input ev" placeholder="Evento" value="${escapeHtml(event)}"><input class="input pr" placeholder="Previsão" value="${escapeHtml(prediction)}"><button class="btn danger small remove">×</button>`;
+ row.querySelector('.remove').onclick=()=>{row.remove();if(!$('selections').children.length)addSelectionRow()};
+ $('selections').appendChild(row);
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+addSelectionRow();$('addSelection').onclick=()=>addSelectionRow();
+$('signup').onclick=async()=>{if(!sb)return status('Primeiro liga o teu projeto Supabase na secção de configuração acima.',true);const {error}=await sb.auth.signUp({email:$('email').value,password:$('password').value});status(error?error.message:'Conta criada. Verifica o email se o projeto pedir confirmação.',!!error)};
+$('login').onclick=async()=>{if(!sb)return status('Primeiro liga o teu projeto Supabase na secção de configuração acima.',true);const {error}=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});status(error?error.message:'Entrada efetuada.',!!error)};
+$('logout').onclick=async()=>{await sb.auth.signOut()};
+$('refresh').onclick=load;
+$('save').onclick=save;
+async function save(){if(!currentUser)return;const rows=[...$('selections').querySelectorAll('.selection')];const sels=rows.map(r=>({event:r.querySelector('.ev').value.trim(),prediction:r.querySelector('.pr').value.trim()})).filter(x=>x.event||x.prediction);if(!sels.length){$('saveStatus').textContent='Adiciona pelo menos uma previsão.';return}const payload={user_id:currentUser.id,date:$('date').value||null,name:$('name').value.trim(),result:$('result').value,notes:$('notes').value.trim(),selections:sels};const {error}=await sb.from('multiples').insert(payload);$('saveStatus').textContent=error?error.message:'Guardado e sincronizado.';if(!error){$('name').value='';$('notes').value='';$('result').value='pending';$('selections').innerHTML='';addSelectionRow();await load()}}
+async function load(){if(!currentUser)return;const {data,error}=await sb.from('multiples').select('*').order('date',{ascending:false}).order('created_at',{ascending:false});if(error){$('history').innerHTML='<div class="empty">'+escapeHtml(error.message)+'</div>';return}let w=0,l=0;data.forEach(x=>x.result==='win'?w++:x.result==='loss'?l++:0);$('total').textContent=data.length;$('wins').textContent=w;$('losses').textContent=l;$('rate').textContent=(w+l?Math.round(w/(w+l)*100):0)+'%';$('history').innerHTML=data.length?data.map(x=>`<div class="history-item"><div class="row"><div><b>${escapeHtml(x.name||'Sem nome')}</b><div class="muted">${escapeHtml(x.date||'Sem data')}</div></div><div>${badge(x.result)}</div></div><div class="selection-list">${(x.selections||[]).map(s=>`<div>• ${escapeHtml(s.event)} — <b>${escapeHtml(s.prediction)}</b></div>`).join('')}</div>${x.notes?`<div class="muted" style="margin-top:8px">${escapeHtml(x.notes)}</div>`:''}<div style="margin-top:10px"><button class="btn danger small" onclick="del(${x.id})">Apagar</button></div></div>`).join(''):'<div class="empty">Ainda não tens previsões guardadas.</div>'}
+async function del(id){if(!confirm('Apagar esta entrada?'))return;const {error}=await sb.from('multiples').delete().eq('id',id);if(error)alert(error.message);else load()}
+let authInitialized=false;
+async function initAuth(){
+  if(!sb||authInitialized)return;
+  authInitialized=true;
+  const {data}=await sb.auth.getSession(); currentUser=data.session?.user||null; updateUI();
+  sb.auth.onAuthStateChange((_e,s)=>{currentUser=s?.user||null;updateUI()});
+}
+function updateUI(){
+  const logged=!!currentUser;
+  $('app').classList.toggle('hidden',!logged);
+  $('auth').classList.toggle('hidden',logged);
+  $('logout').classList.toggle('hidden',!logged);
+  $('setupHelp').classList.toggle('hidden',configured);
+  $('setupHelpOld').classList.toggle('hidden',configured);
+  if(logged)load();
+}
+if(!configured){configStatus('Ainda não configurado. Cola os dois dados acima para ligar o tracker.');}
+else {initAuth();}
+updateUI();
+</script>
+</body>
+</html>
