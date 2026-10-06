@@ -156,8 +156,10 @@ $('passwordDiag').addEventListener('click',async()=>{
     };
     const e=await hash(email);
     const pw=await hash(p);
+    const emailChars=[...email].map((ch,i)=>`${i+1}:${ch===' '?'[ESPAÇO]':ch}`).join('  ');
     $('passwordDiagResult').textContent=
-      `EMAIL — Caracteres: ${e.chars} | Bytes: ${e.bytes} | Espaços: ${e.spaces?'SIM':'NÃO'} | Fora de ASCII: ${e.nonAscii?'SIM':'NÃO'} | SHA-256: ${e.sha}\n\n`+
+      `EMAIL — Caracteres: ${e.chars} | Bytes: ${e.bytes} | Espaços: ${e.spaces?'SIM':'NÃO'} | Fora de ASCII: ${e.nonAscii?'SIM':'NÃO'} | SHA-256: ${e.sha}\n`+
+      `CARACTERES DO EMAIL — ${emailChars}\n\n`+
       `PASSWORD — Caracteres: ${pw.chars} | Bytes: ${pw.bytes} | Espaços: ${pw.spaces?'SIM':'NÃO'} | Fora de ASCII: ${pw.nonAscii?'SIM':'NÃO'} | SHA-256: ${pw.sha}`;
     $('passwordDiagResult').style.whiteSpace='pre-wrap';
     $('passwordDiagResult').style.color='#9eabb9';
