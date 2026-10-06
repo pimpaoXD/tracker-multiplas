@@ -15,7 +15,7 @@
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), UKEY='tracker_supabase_url',KKEY='tracker_supabase_anon',AKEY='tracker_access_token',RKEY='tracker_refresh_token';
-let URL=localStorage.getItem(UKEY)||'https://hhmudqxrxshavsrdayjc.supabase.co', KEY=localStorage.getItem(KKEY)||'', access=localStorage.getItem(AKEY)||'', refresh=localStorage.getItem(RKEY)||'', user=null;
+let URL=localStorage.getItem(UKEY)||'https://hhmudqxrxshavsrdayjc.supabase.co', KEY=localStorage.getItem(KKEY)||'sb_publishable_P-9NE07kWtt2oiWKIQLv5A_bS0xYZ51', access=localStorage.getItem(AKEY)||'', refresh=localStorage.getItem(RKEY)||'', user=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const msg=(id,t,err=false)=>{const e=$(id);e.textContent=t;e.style.color=err?'#ff9eaa':'#9eabb9'};
 $('configUrl').value=URL;$('configKey').value=KEY;$('date').value=new Date().toISOString().slice(0,10);
